@@ -4,6 +4,7 @@ import { ApiResponse, ApiResponsePaginated } from '../types/response';
 import { Product } from '../models/Product';
 import LOG from '../config/Logger';
 import fs from 'fs';
+import { ProductTagService } from '../services/productTagService';
 
 export class ProductController {
   // 获取所有产品（支持分页）
@@ -67,62 +68,78 @@ export class ProductController {
     LOG.info(`ProductController: createProduct Start`);
     LOG.info(`ProductController: createProduct params: ${JSON.stringify(req.body)}`);
     
-    // 保存上传的图片路径，以便失败时删除
     const uploadedImagePath = req.file?.path;
 
     try {
-        // 1. 数据验证
-        if (!req.body.productName?.trim()) {
-            throw new Error('商品名称不能为空');
+      // 基本验证
+      if (!req.body.productName?.trim()) {
+        throw new Error('商品名称不能为空');
+      }
+
+      const price = parseFloat(req.body.price);
+      const categoryId = parseInt(req.body.categoryId);
+
+      if (isNaN(price) || price <= 0) {
+        throw new Error('商品价格必须大于0');
+      }
+
+      if (isNaN(categoryId) || categoryId <= 0) {
+        throw new Error('无效的分类ID');
+      }
+
+      // 解析标签数据（如果存在）
+      let tags;
+      if (req.body.tags) {
+        try {
+          tags = JSON.parse(req.body.tags);
+          if (!Array.isArray(tags)) {
+            throw new Error('标签数据格式错误');
+          }
+          // 验证标签数据格式
+          for (const tag of tags) {
+            if (!tag.tagId || !Array.isArray(tag.optionIds)) {
+              throw new Error('标签数据格式错误');
+            }
+          }
+        } catch (e) {
+          throw new Error('标签数据解析失败');
         }
+      }
 
-        const price = parseFloat(req.body.price);
-        const categoryId = parseInt(req.body.categoryId);
+      const productData = {
+        name: req.body.productName.trim(),
+        description: req.body.description?.trim(),
+        price,
+        stock: parseInt(req.body.stock) || 0,
+        categoryId,
+        status: req.body.status as 'active' | 'inactive' || 'active',
+        imageFile: req.file,
+        tags  // 可选参数
+      };
 
-        // 2. 价格验证
-        if (isNaN(price) || price <= 0) {
-            throw new Error('商品价格必须大于0');
-        }
-
-        // 3. 分类ID验证
-        if (isNaN(categoryId) || categoryId <= 0) {
-            throw new Error('无效的分类ID');
-        }
-
-        const productData = {
-            name: req.body.productName.trim(),
-            description: req.body.description?.trim(),
-            price,
-            stock: 0,
-            categoryId,
-            status: 'active' as const,
-            imageFile: req.file
-        };
-
-        const { product } = await ProductService.createProduct(productData);
-        LOG.info(`ProductController: createProduct newProduct: ${JSON.stringify(product)}`);
-        
-        res.status(201).json({
-            success: true,
-            data: product,
-            message: '产品创建成功'
-        } as ApiResponse<Product>);
+      const { product } = await ProductService.createProduct(productData);
+      
+      res.status(201).json({
+        success: true,
+        data: product,
+        message: '产品创建成功'
+      } as ApiResponse<Product>);
     } catch (error: any) {
-        LOG.error(`ProductController: createProduct error: ${error}`);
-        
-        // 删除原始上传的临时文件
-        if (uploadedImagePath && fs.existsSync(uploadedImagePath)) {
-            fs.unlinkSync(uploadedImagePath);
-            LOG.info(`ProductController: Deleted uploaded image at ${uploadedImagePath}`);
-        }
+      LOG.error(`ProductController: createProduct error: ${error}`);
+      
+      // 删除临时上传的文件
+      if (uploadedImagePath && fs.existsSync(uploadedImagePath)) {
+        fs.unlinkSync(uploadedImagePath);
+        LOG.info(`ProductController: Deleted uploaded image at ${uploadedImagePath}`);
+      }
 
-        res.status(400).json({
-            success: false,
-            message: '创建产品失败',
-            error: error.message
-        } as ApiResponse);
+      res.status(400).json({
+        success: false,
+        message: '创建产品失败',
+        error: error.message
+      } as ApiResponse);
     } finally {
-        LOG.info('ProductController: createProduct End');
+      LOG.info('ProductController: createProduct End');
     }
   }
 
@@ -225,6 +242,115 @@ export class ProductController {
         } as ApiResponse);
     } finally {
         LOG.info('ProductController: deleteProduct End');
+    }
+  }
+
+  static async getProductTags(req: Request, res: Response): Promise<void> {
+    try {
+      const { productId } = req.params;
+      const tags = await ProductTagService.getProductTags(productId);
+      
+      res.json({
+        success: true,
+        data: tags
+      });
+    } catch (error: any) {
+      res.status(500).json({
+        success: false,
+        message: '获取商品标签失败',
+        error: error.message
+      });
+    }
+  }
+
+  static async getProductTagOptions(req: Request, res: Response): Promise<void> {
+    try {
+      const { productId, tagId } = req.params;
+      const options = await ProductTagService.getProductTagOptions(
+        productId, 
+        parseInt(tagId)
+      );
+      
+      res.json({
+        success: true,
+        data: options
+      });
+    } catch (error: any) {
+      res.status(500).json({
+        success: false,
+        message: '获取商品标签选项失败',
+        error: error.message
+      });
+    }
+  }
+
+  static async addProductTags(req: Request, res: Response): Promise<void> {
+    try {
+      const { productId } = req.params;
+      const { tags } = req.body;
+      
+      await ProductTagService.addProductTags(productId, tags);
+      
+      res.json({
+        success: true,
+        message: '添加商品标签成功'
+      });
+    } catch (error: any) {
+      res.status(500).json({
+        success: false,
+        message: '添加商品标签失败',
+        error: error.message
+      });
+    }
+  }
+
+  static async removeProductTags(req: Request, res: Response): Promise<void> {
+    try {
+      const { productId } = req.params;
+      const { tagIds } = req.body;
+
+      if (!Array.isArray(tagIds) || tagIds.length === 0) {
+        res.status(400).json({
+          success: false,
+          message: '请提供要删除的标签ID列表'
+        });
+      }
+
+      await ProductTagService.removeProductTags(productId, tagIds);
+
+      res.json({
+        success: true,
+        message: '删除商品标签成功'
+      });
+    } catch (error: any) {
+      res.status(500).json({
+        success: false,
+        message: '删除商品标签失败',
+        error: error.message
+      });
+    }
+  }
+
+  static async removeProductTagOption(req: Request, res: Response): Promise<void> {
+    try {
+      const { productId, tagId, optionId } = req.params;
+
+      await ProductTagService.removeProductTagOption(
+        productId,
+        parseInt(tagId),
+        parseInt(optionId)
+      );
+
+      res.json({
+        success: true,
+        message: '删除商品标签选项成功'
+      });
+    } catch (error: any) {
+      res.status(500).json({
+        success: false,
+        message: '删除商品标签选项失败',
+        error: error.message
+      });
     }
   }
 }

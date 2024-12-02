@@ -1,8 +1,11 @@
 import { ProductRepo } from '../repositories';
 import { Product } from '../models/Product';
+import { ProductTag } from '../models/ProductTag';
 import { ImageService } from './imageService';
 import { IdGenerator } from '../utils/idGenerator';
 import { PaginatedData } from '../types/response';
+import { ProductTagService } from './productTagService';
+import { TagRepo, OptionRepo } from '../repositories';
 
 export class ProductService {
 
@@ -38,6 +41,10 @@ export class ProductService {
     categoryId: number;
     status?: 'active' | 'inactive';
     imageFile?: Express.Multer.File;
+    tags?: Array<{
+      tagId: number;
+      optionIds: number[];
+    }>;
   }): Promise<{ product: Product; compressedImagePath?: string }> {
     const queryRunner = ProductRepo.manager.connection.createQueryRunner();
     let imageResult: { url: string; path: string } | undefined;
@@ -56,6 +63,24 @@ export class ProductService {
       });
 
       const savedProduct = await queryRunner.manager.save(newProduct);
+
+      if (data.tags && data.tags.length > 0) {
+        for (const tagData of data.tags) {
+          const tag = await TagRepo.findByTagId(tagData.tagId);
+          if (!tag) {
+            throw new Error(`标签不存在: tagId=${tagData.tagId}`);
+          }
+
+          await this.validateTagData(tag, tagData.optionIds);
+
+          await TagRepo.addProductTag(savedProduct.productId, tagData.tagId);
+
+          for (const optionId of tagData.optionIds) {
+            await OptionRepo.addProductTagOption(savedProduct.productId, optionId, false);
+          }
+        }
+      }
+
       await queryRunner.commitTransaction();
       
       return {
@@ -73,19 +98,37 @@ export class ProductService {
     }
   }
 
+  private static async validateTagData(tag: ProductTag, optionIds: number[]): Promise<void> {
+    const isValid = await ProductTagService.validateTagOptions(tag.tagId, optionIds);
+    if (!isValid) {
+      throw new Error(`无效的标签选项: tagId=${tag.tagId}`);
+    }
+
+    if (tag.required && optionIds.length === 0) {
+      throw new Error(`必选标签未选择选项: ${tag.name}`);
+    }
+
+    if (!tag.multiSelect && optionIds.length > 1) {
+      throw new Error(`单选标签不能选择多个选项: ${tag.name}`);
+    }
+  }
+
   static async updateProduct(
     productId: string,
     updates: Partial<Omit<Product, 'productId'>>,
     imageFile?: Express.Multer.File
   ): Promise<Product> {
-    const product = await ProductService.getProductById(productId);
+    const product = await this.getProductById(productId);
     const queryRunner = ProductRepo.manager.connection.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();
 
     try {
       if (imageFile) {
-        const categoryId = updates.categoryId ?? 0;
+        const categoryId = updates.categoryId ?? product.categoryId;
+        if (!categoryId) {
+          throw new Error('分类ID不能为空');
+        }
         const imageResult = await ImageService.uploadAndCompressImage(imageFile, categoryId);
         updates.imageUrl = imageResult.url;
         
@@ -95,7 +138,7 @@ export class ProductService {
       }
 
       Object.assign(product, updates);
-      const updatedProduct = await queryRunner.manager.save(Product, product);
+      const updatedProduct = await ProductRepo.save(product);
       await queryRunner.commitTransaction();
       
       return updatedProduct;
@@ -108,11 +151,13 @@ export class ProductService {
   }
 
   static async deleteProduct(productId: string): Promise<void> {
-    const product = await ProductService.getProductById(productId);
+    const product = await this.getProductById(productId);
+    
     if (product.imageUrl) {
       await ImageService.deleteImageByUrl(product.imageUrl);
     }
-    await ProductRepo.remove(product);
+
+    await ProductRepo.deleteProduct(productId);
   }
 
   static async updateStock(productId: string, quantity: number): Promise<Product> {

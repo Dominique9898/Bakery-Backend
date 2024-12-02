@@ -6,10 +6,13 @@ import {
   UpdateDateColumn,
   ManyToOne,
   OneToMany,
-  JoinColumn
+  JoinColumn,
+  ManyToMany,
+  JoinTable
 } from 'typeorm';
 import { Category } from './Category';
 import { OrderItem } from './OrderItem';
+import { ProductTag } from './ProductTag';
 
 @Entity('products')
 export class Product {
@@ -88,4 +91,18 @@ export class Product {
 
   @OneToMany(() => OrderItem, orderItem => orderItem.product)
   orderItems?: OrderItem[];
+
+  @ManyToMany(() => ProductTag, tag => tag.products)
+  @JoinTable({
+    name: 'product_tag_relations',
+    joinColumn: {
+      name: 'product_id',
+      referencedColumnName: 'productId'
+    },
+    inverseJoinColumn: {
+      name: 'tag_id',
+      referencedColumnName: 'tagId'
+    }
+  })
+  tags?: ProductTag[];
 }

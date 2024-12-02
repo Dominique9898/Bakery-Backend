@@ -44,27 +44,27 @@ export const IdGenerator = {
     return `${prefix}${date}${random}`;
   },
 
-  // 订单ID: O + 年月日时分 + 6位数字, 例如: O202403151423000123
+  // 订单ID: O + 年月日时分 + 6位数字, 例如: O202403151430001
   generateOrderId: () => {
     const prefix = 'O';
     const date = dayjs().format('YYYYMMDDHHmm');
-    const random = customAlphabet('0123456789', 6);
+    const random = generateNumeric(6);
     return `${prefix}${date}${random}`;
   },
 
-  // 订单商品ID: OI + 订单ID后6位 + 3位序号, 例如: OI000123001
-  generateOrderItemId: (orderId: string) => {
+  // 订单商品ID: OI + 订单ID后6位 + 3位序号, 例如: OI430001001
+  generateOrderItemId: (orderId: string, sequence: number) => {
     const prefix = 'OI';
     const orderSuffix = orderId.slice(-6);
-    const sequence = customAlphabet('0123456789', 3);
-    return `${prefix}${orderSuffix}${sequence}`;
+    const sequenceStr = sequence.toString().padStart(3, '0');
+    return `${prefix}${orderSuffix}${sequenceStr}`;
   },
 
-  // 支付ID: PAY + 年月日 + 10位数字, 例如: PAY20240315123456789
+  // 支付ID: PAY + 年月日 + 10位数字, 例如: PAY20240315001
   generatePaymentId: () => {
     const prefix = 'PAY';
     const date = dayjs().format('YYYYMMDD');
-    const random = customAlphabet('0123456789', 10);
+    const random = generateNumeric(3);
     return `${prefix}${date}${random}`;
   },
 
@@ -84,12 +84,12 @@ export const IdGenerator = {
     return `${prefix}${date}${random}`;
   },
 
-  // 配送追踪ID: DT + 订单ID后8位 + 4位序号, 例如: DT12345678001
-  generateDeliveryTrackingId: (orderId: string) => {
+  // 配送追踪ID: DT + 年月日 + 3位序号, 例如: DT20240315001
+  generateDeliveryTrackingId: () => {
     const prefix = 'DT';
-    const orderSuffix = orderId.slice(-8);
-    const sequence = customAlphabet('0123456789', 4);
-    return `${prefix}${orderSuffix}${sequence}`;
+    const date = dayjs().format('YYYYMMDD');
+    const random = generateNumeric(3);
+    return `${prefix}${date}${random}`;
   },
 
   // 风险日志ID: RL + 年月日时分 + 6位数字, 例如: RL202403151423000123
