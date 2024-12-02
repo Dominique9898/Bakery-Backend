@@ -1,12 +1,6 @@
 import { Router } from 'express';
 import { upload } from '../middlewares/upload';
-import {
-  getAllProducts,
-  getProductById,
-  createProduct,
-  updateProduct,
-  deleteProduct
-} from '../controllers/productController';
+import { ProductController } from '../controllers/productController';
 
 const router = Router();
 
@@ -72,7 +66,7 @@ const router = Router();
  *         error:
  *           type: string
  * 
- * /api/v1/products/listAllProducts:
+ * /products/listAllProducts:
  *   get:
  *     tags: [Products]
  *     summary: 获取所有商品
@@ -113,7 +107,7 @@ const router = Router();
  *                     totalPages:
  *                       type: number
  * 
- * /api/v1/products/getById/{productId}:
+ * /products/getById/{productId}:
  *   get:
  *     tags: [Products]
  *     summary: 获取单个商品
@@ -131,7 +125,7 @@ const router = Router();
  *             schema:
  *               $ref: '#/components/schemas/ApiResponse'
  * 
- * /api/v1/products/create:
+ * /products/create:
  *   post:
  *     tags: [Products]
  *     summary: 创建商品
@@ -165,7 +159,7 @@ const router = Router();
  *             schema:
  *               $ref: '#/components/schemas/ApiResponse'
  * 
- * /api/v1/products/update/{productId}:
+ * /products/update/{productId}:
  *   put:
  *     tags: [Products]
  *     summary: 更新商品
@@ -212,7 +206,7 @@ const router = Router();
  *             schema:
  *               $ref: '#/components/schemas/ApiResponse'
  * 
- * /api/v1/products/delete/{productId}:
+ * /products/delete/{productId}:
  *   delete:
  *     tags: [Products]
  *     summary: 删除商品
@@ -231,10 +225,10 @@ const router = Router();
  *               $ref: '#/components/schemas/ApiResponse'
  */
 
-router.get('/listAllProducts', getAllProducts);
-router.get('/getById/:productId', getProductById);
-router.post('/create', upload.single('image'), createProduct);
-router.put('/update/:productId', upload.single('image'), updateProduct);
-router.delete('/delete/:productId', deleteProduct);
+router.get('/listAllProducts', ProductController.getAllProducts);
+router.get('/getById/:productId', ProductController.getProductById);
+router.post('/create', upload.single('image'), ProductController.createProduct);
+router.put('/update/:productId', upload.single('image'), ProductController.updateProduct);
+router.delete('/delete/:productId', ProductController.deleteProduct);
 
 export default router;

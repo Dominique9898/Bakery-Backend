@@ -10,25 +10,24 @@ import helmet from 'helmet';
 
 const app: Express = express();
 
-// 中间件
+// 基础中间件
 app.use(cors());
-
 app.use(json());
 app.use(urlencoded({ extended: true }));
-
-// 开发环境提供静态文件服务
-if (process.env.NODE_ENV !== 'production') {
-  app.use('/uploads', express.static(UPLOAD_ROOT));
-}
-
-// 路由
 app.use(bodyParser.json());
-app.use('/api', routes);
 
-// 添加安全头部
-app.use(helmet());
+// API 路由 (放在最前面)
+app.use('/Bakery-LY/api/v1', routes);
 
-// 设置 Swagger 文档
+// Swagger 文档
 setupSwagger(app);
+
+// 根路由处理
+app.get('/', (req, res) => {
+  res.redirect('/Bakery-LY');
+});
+
+// 安全头部
+app.use(helmet());
 
 export default app;

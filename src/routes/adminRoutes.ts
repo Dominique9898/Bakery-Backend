@@ -1,7 +1,8 @@
 import { Router } from 'express';
-import { getAllAdmins, login, register, updateAdmin, deleteAdmin } from '../controllers/adminController';
+import { AdminController } from '../controllers/adminController';
 
 const router = Router();
+const adminController = new AdminController();
 
 /**
  * @swagger
@@ -12,7 +13,7 @@ const router = Router();
 
 /**
  * @swagger
- * /api/v1/admins:
+ *  /admins/getAllAdmins:
  *   get:
  *     summary: 获取所有管理员
  *     tags: [Admins]
@@ -30,11 +31,11 @@ const router = Router();
  *       401:
  *         description: 未授权
  */
-router.get('/', getAllAdmins);
+router.get('/getAllAdmins', adminController.getAllAdmins);
 
 /**
  * @swagger
- * /api/v1/admins/login:
+ * /admins/login:
  *   post:
  *     summary: 管理员登录
  *     tags: [Admins]
@@ -67,11 +68,11 @@ router.get('/', getAllAdmins);
  *       401:
  *         description: 登录失败
  */
-router.post('/login', login);
+router.post('/login', adminController.login);
 
 /**
  * @swagger
- * /api/v1/admins/register:
+ * /admins/register:
  *   post:
  *     summary: 注册管理员
  *     tags: [Admins]
@@ -97,11 +98,11 @@ router.post('/login', login);
  *       400:
  *         description: 请求参数错误
  */
-router.post('/register', register);
+router.post('/register', adminController.register);
 
 /**
  * @swagger
- * /api/v1/admins/{adminId}:
+ * /admins/deleteAdmin/:adminId:
  *   delete:
  *     summary: 删除管理员
  *     tags: [Admins]
@@ -120,6 +121,6 @@ router.post('/register', register);
  *       404:
  *         description: 管理员不存在
  */
-router.delete('/:adminId', deleteAdmin);
+router.delete('/deleteAdmin/:adminId', adminController.deleteAdmin);
 
 export default router;

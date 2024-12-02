@@ -4,11 +4,10 @@ import { ApiResponse, ApiResponsePaginated } from '../types/response';
 import { Product } from '../models/Product';
 import LOG from '../config/Logger';
 import fs from 'fs';
-import path from 'path';
-import { PRODUCT_UPLOAD_DIR } from '../config/paths';
 
-// 获取所有产品（支持分页）
-export const getAllProducts = async (req: Request, res: Response) => {
+export class ProductController {
+  // 获取所有产品（支持分页）
+  static async getAllProducts(req: Request, res: Response) {
     LOG.info(`ProductController: getAllProducts Start`);
     LOG.info(`ProductController: getAllProducts params: ${JSON.stringify(req.query)}`);
     try {
@@ -31,10 +30,10 @@ export const getAllProducts = async (req: Request, res: Response) => {
     } finally {
         LOG.info('ProductController: getAllProducts End');
     }
-};
+  }
 
-// 获取单个产品
-export const getProductById = async (req: Request, res: Response): Promise<void> => {
+  // 获取单个产品
+  static async getProductById(req: Request, res: Response): Promise<void> {
     LOG.info(`ProductController: getProductById Start`);
     LOG.info(`ProductController: getProductById params: ${JSON.stringify(req.params)}`);
     const { productId } = req.params;
@@ -61,10 +60,10 @@ export const getProductById = async (req: Request, res: Response): Promise<void>
     } finally {
         LOG.info('ProductController: getProductById End');
     }
-};
+  }
 
-// 创建产品
-export const createProduct = async (req: Request, res: Response) => {
+  // 创建产品
+  static async createProduct(req: Request, res: Response) {
     LOG.info(`ProductController: createProduct Start`);
     LOG.info(`ProductController: createProduct params: ${JSON.stringify(req.body)}`);
     
@@ -125,10 +124,10 @@ export const createProduct = async (req: Request, res: Response) => {
     } finally {
         LOG.info('ProductController: createProduct End');
     }
-};
+  }
 
-// 更新产品
-export const updateProduct = async (req: Request, res: Response) => {
+  // 更新产品
+  static async updateProduct(req: Request, res: Response) {
     LOG.info(`ProductController: updateProduct Start`);
     LOG.info(`ProductController: updateProduct params: ${JSON.stringify(req.params)}`);
     
@@ -195,10 +194,10 @@ export const updateProduct = async (req: Request, res: Response) => {
     } finally {
         LOG.info('ProductController: updateProduct End');
     }
-};
+  }
 
-// 删除产品
-export const deleteProduct = async (req: Request, res: Response) => {
+  // 删除产品
+  static async deleteProduct(req: Request, res: Response) {
     LOG.info(`ProductController: deleteProduct Start`);
     const productId: string = req.params.productId;
     LOG.info(`ProductController: deleteProduct params: ${JSON.stringify(req.params)}`);
@@ -227,4 +226,5 @@ export const deleteProduct = async (req: Request, res: Response) => {
     } finally {
         LOG.info('ProductController: deleteProduct End');
     }
-};
+  }
+}

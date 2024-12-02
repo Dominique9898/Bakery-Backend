@@ -1,4 +1,3 @@
-
 import { hashPassword, verifyPassword } from '../utils/bcryptUtils';
 import { AdminRepo } from '../repositories';
 import { generateToken } from '../utils/jwt';
@@ -6,7 +5,7 @@ import { Admin } from '../models/Admin';
 export class AdminService {
 
   static async loginAdmin(username: string, password: string): Promise<{ token: string; admin: Admin }> {
-    const admin = await AdminRepo.findOne({ where: { username } });
+    const admin = await AdminRepo.findOneByUsername(username);
   
     if (!admin) {
       throw new Error('Invalid username or password');
@@ -28,13 +27,13 @@ export class AdminService {
 
   // 创建新管理员
   static async createAdmin(username: string, password: string): Promise<Admin> {
-    const existingAdmin = await AdminRepo.findOneBy({ username });
+    const existingAdmin = await AdminRepo.findOneByUsername(username);
     if (existingAdmin) {
       throw new Error('Username already exists');
     }
 
     const hashedPassword = await hashPassword(password, 10);
-    const newAdmin = AdminRepo.create({
+    const newAdmin = await AdminRepo.createAdmin({
       username,
       passwordHash: hashedPassword,
     });
@@ -44,7 +43,7 @@ export class AdminService {
 
   // 更新管理员信息
   static async updateAdmin(adminId: number, updates: Partial<Admin>): Promise<Admin> {
-    const admin = await AdminRepo.findOneBy({ adminId });
+    const admin = await AdminRepo.findByAdminId(adminId);
     if (!admin) {
       throw new Error('Admin not found');
     }
@@ -57,7 +56,7 @@ export class AdminService {
 
   // 删除管理员
   static async deleteAdmin(adminId: number): Promise<void> {
-    const admin = await AdminRepo.findOneBy({ adminId });
+    const admin = await AdminRepo.findByAdminId(adminId);
     if (!admin) {
       throw new Error('Admin not found');
     }

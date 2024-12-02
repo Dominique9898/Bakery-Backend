@@ -1,12 +1,5 @@
 import { Router } from 'express';
-import {
-    getAllCategories,
-    getCategoryById,
-    createCategory,
-    updateCategory,
-    deleteCategory,
-    getCategoryByName,
-  } from '../controllers/categoryController';
+import { CategoryController } from '../controllers/categoryController';
   
   const router = Router();
   
@@ -19,7 +12,7 @@ import {
 
 /**
  * @swagger
- * /api/v1/categories:
+ * /categories/getAllCategories:
  *   get:
  *     summary: 获取所有分类
  *     tags: [Categories]
@@ -33,11 +26,11 @@ import {
  *               items:
  *                 $ref: '#/components/schemas/Category'
  */
-router.get('/', getAllCategories);
+router.get('/getAllCategories', CategoryController.getAllCategories);
 
 /**
  * @swagger
- * /api/v1/categories/{categoryId}:
+ * /categories/getCategoryById/{categoryId}:
  *   get:
  *     summary: 根据ID获取分类
  *     tags: [Categories]
@@ -58,11 +51,11 @@ router.get('/', getAllCategories);
  *       404:
  *         description: 分类不存在
  */
-router.get('/:categoryId', getCategoryById);
+router.get('/getCategoryById/:categoryId', CategoryController.getCategoryById);
 
 /**
  * @swagger
- * /api/v1/categories/name/{name}:
+ * /categories/getCategoryByName/{name}:
  *   get:
  *     summary: 根据名称获取分类
  *     tags: [Categories]
@@ -83,11 +76,11 @@ router.get('/:categoryId', getCategoryById);
  *       404:
  *         description: 分类不存在
  */
-router.get('/name/:name', getCategoryByName);
+router.get('/getCategoryByName/:name', CategoryController.getCategoryByName);
 
 /**
  * @swagger
- * /api/v1/categories:
+ * /categories/createCategory:
  *   post:
  *     summary: 创建新分类
  *     tags: [Categories]
@@ -126,11 +119,11 @@ router.get('/name/:name', getCategoryByName);
  *                   type: string
  *                   example: "分类名称不能为空"
  */
-router.post('/', createCategory);
+router.post('/createCategory', CategoryController.createCategory);
 
 /**
  * @swagger
- * /api/v1/categories/{categoryId}:
+ * /categories/updateCategory/{categoryId}:
  *   put:
  *     summary: 更新分类信息
  *     tags: [Categories]
@@ -162,11 +155,11 @@ router.post('/', createCategory);
  *       404:
  *         description: 分类不存在
  */
-router.put('/:categoryId', updateCategory);
+router.put('/updateCategory/:categoryId', CategoryController.updateCategory);
 
 /**
  * @swagger
- * /api/v1/categories/{categoryId}:
+ * /categories/deleteCategory/{categoryId}:
  *   delete:
  *     summary: 删除分类
  *     tags: [Categories]
@@ -185,6 +178,6 @@ router.put('/:categoryId', updateCategory);
  *       404:
  *         description: 分类不存在
  */
-router.delete('/:categoryId', deleteCategory);
+router.delete('/deleteCategory/:categoryId', CategoryController.deleteCategory);
   
 export default router;

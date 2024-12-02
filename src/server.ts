@@ -1,4 +1,4 @@
-import AppDataSource from './config/ormconfig';
+import AppDataSource from './config/ormconfig'
 import app from './app';
 import config from './config';
 

@@ -5,13 +5,14 @@
   "main": "dist/server.js",
   "scripts": {
     "start": "node dist/server.js",
-    "dev": "kill-port 30100 && nodemon",
+    "dev": "kill-port 30100 && nodemon --exec ts-node src/server.ts",
     "build": "tsc",
     "test": "jest",
     "typeorm": "typeorm-ts-node-commonjs"
   },
   "dependencies": {
     "@types/helmet": "^0.0.48",
+    "@types/winston": "^2.4.4",
     "bcrypt": "^5.1.1",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.1",
@@ -23,6 +24,7 @@
     "joi": "^17.13.3",
     "jsonwebtoken": "^9.0.2",
     "multer": "^1.4.5-lts.1",
+    "mysql": "^2.18.1",
     "nanoid": "^5.0.8",
     "npm": "^10.9.0",
     "passport": "^0.7.0",
