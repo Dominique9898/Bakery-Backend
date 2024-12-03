@@ -1,7 +1,6 @@
 import express, { Express } from 'express';  // 将 Application 改为 Express
 import cors from 'cors';
-import path from 'path';
-import { UPLOAD_ROOT } from './config/paths';
+import { URLS, PATHS } from './config/paths';
 import { json, urlencoded } from 'body-parser';
 import bodyParser from "body-parser";
 import { setupSwagger } from './swagger/swagger';
@@ -29,5 +28,5 @@ app.get('/', (req, res) => {
 
 // 安全头部
 app.use(helmet());
-
+app.use(URLS.UPLOADS.BASE, express.static(PATHS.UPLOAD_ROOT));
 export default app;

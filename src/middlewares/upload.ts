@@ -1,43 +1,50 @@
 import multer from 'multer';
 import path from 'path';
-import fs from 'fs';
+import { PRODUCT_UPLOAD_DIR, AVATAR_UPLOAD_DIR } from '../config/paths';
 
-// 上传文件的根目录
-const UPLOAD_ROOT = path.join(__dirname, '../../uploads');
-
-// 确保上传目录存在
-if (!fs.existsSync(UPLOAD_ROOT)) {
-  fs.mkdirSync(UPLOAD_ROOT, { recursive: true });
-}
-
-// 设置存储路径和文件名
-const storage = multer.diskStorage({
+// 配置商品图片上传
+const productStorage = multer.diskStorage({
   destination: (req, file, cb) => {
-    const targetDir = path.join(UPLOAD_ROOT, 'products'); // 仅允许存储在 /uploads/products
-    if (!fs.existsSync(targetDir)) {
-      fs.mkdirSync(targetDir, { recursive: true });
-    }
-    cb(null, targetDir);
+    cb(null, PRODUCT_UPLOAD_DIR);
   },
   filename: (req, file, cb) => {
-    const uniqueSuffix = `${Date.now()}-${Math.round(Math.random() * 1e9)}`;
-    const extension = path.extname(file.originalname);
-    cb(null, `product-${uniqueSuffix}${extension}`);
+    const uniqueSuffix = `${Date.now()}-${Math.round(Math.random() * 1E9)}`;
+    cb(null, `product-${uniqueSuffix}${path.extname(file.originalname)}`);
+  }
+});
+
+// 配置头像上传
+const avatarStorage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, AVATAR_UPLOAD_DIR);
   },
+  filename: (req, file, cb) => {
+    const uniqueSuffix = `${Date.now()}-${Math.round(Math.random() * 1E9)}`;
+    cb(null, `avatar-${uniqueSuffix}${path.extname(file.originalname)}`);
+  }
 });
 
 // 文件类型验证
-const fileFilter = (req: any, file: any, cb: any) => {
-  const allowedMimeTypes = ['image/jpeg', 'image/png', 'image/gif'];
-  if (allowedMimeTypes.includes(file.mimetype)) {
+const imageFilter = (req: any, file: any, cb: any) => {
+  if (file.mimetype.startsWith('image/')) {
     cb(null, true);
   } else {
-    cb(new Error('Invalid file type. Only JPEG, PNG, and GIF are allowed!'), false);
+    cb(new Error('Only image files are allowed!'), false);
   }
 };
 
-export const upload = multer({
-  storage,
-  fileFilter,
-  limits: { fileSize: 5 * 1024 * 1024 }, // 文件大小限制为 5MB
+export const productUpload = multer({
+  storage: productStorage,
+  fileFilter: imageFilter,
+  limits: {
+    fileSize: 5 * 1024 * 1024 // 5MB
+  }
+});
+
+export const avatarUpload = multer({
+  storage: avatarStorage,
+  fileFilter: imageFilter,
+  limits: {
+    fileSize: 2 * 1024 * 1024 // 2MB
+  }
 });

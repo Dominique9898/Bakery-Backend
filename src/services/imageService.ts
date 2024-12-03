@@ -1,18 +1,11 @@
-import { PRODUCT_UPLOAD_DIR } from '../config/paths';
-import sharp from 'sharp';
-import path from 'path';
 import fs from 'fs';
+import path from 'path';
+import { FileUtils, PRODUCT_UPLOAD_DIR, URLS } from '../config/paths';
 import { ensureDirectoryExists } from '../utils/fileUtils';
-import config from '../config';
+import sharp from 'sharp';
 
 export class ImageService {
-  private static getBaseUrl(): string {
-    const isProduction = process.env.NODE_ENV === 'production';
-    return isProduction
-      ? (process.env.NGINX_PROXY_URL || 'http://114.132.42.5/uploads')
-      : `http://${config.host || 'localhost'}:${config.port || 30100}/uploads`;
-  }
-
+  // 生成安全的文件名
   private static generateSafeFileName(originalName: string): string {
     const ext = path.extname(originalName);
     const baseName = originalName
@@ -22,7 +15,6 @@ export class ImageService {
 
     return `${baseName}-${Date.now()}${ext}`;
   }
-
   static async uploadAndCompressImage(
     imageFile: Express.Multer.File,
     categoryId: number
@@ -43,23 +35,29 @@ export class ImageService {
     const relativePath = `products/${categoryId}/${filename}`;
     
     return {
-      url: `${this.getBaseUrl()}/${relativePath}`,
+      url: `${URLS.UPLOADS.BASE}/${relativePath}`,
       path: filePath
     };
   }
 
-  static async deleteImage(imagePath: string): Promise<void> {
-    if (fs.existsSync(imagePath)) {
-      fs.unlinkSync(imagePath);
+  static async deleteProductImage(imageUrl: string): Promise<void> {
+    try {
+      const filename = path.basename(imageUrl);
+      const filepath = FileUtils.getStoragePath(filename, 'products');
+      
+      if (fs.existsSync(filepath)) {
+        await fs.promises.unlink(filepath);
+      }
+    } catch (error) {
+      console.error('Error deleting image:', error);
+      throw new Error('Failed to delete image');
     }
   }
 
-  static async deleteImageByUrl(imageUrl: string): Promise<void> {
-    const urlParts = imageUrl.split('/uploads/');
-    if (urlParts.length > 1) {
-      const relativePath = urlParts[1];
-      const imagePath = path.join(PRODUCT_UPLOAD_DIR, relativePath);
-      await this.deleteImage(imagePath);
-    }
+  static async saveAvatarImage(file: Express.Multer.File): Promise<string> {
+    if (!file) throw new Error('No file uploaded');
+    
+    const filename = path.basename(file.path);
+    return FileUtils.getFileUrl(filename, 'avatars');
   }
 } 

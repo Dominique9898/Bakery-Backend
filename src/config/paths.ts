@@ -1,25 +1,85 @@
 import path from 'path';
+import fs from 'fs';
 
+// 环境配置
 const isProduction = process.env.NODE_ENV === 'production';
+const isDevelopment = process.env.NODE_ENV === 'development';
 
-// 项目文件夹名称
-export const PROJECT_FOLDER = 'bakery';
+// 基础配置
+export const CONFIG = {
+  PROJECT_NAME: 'bakery_backend',
+  PORT: process.env.PORT || 30100,
+  HOST: isProduction ? 'your-production-domain.com' : 'localhost',
+  PROTOCOL: isProduction ? 'https' : 'http'
+} as const;
 
-// 静态资源根目录
-export const UPLOAD_ROOT = isProduction
-  ? `/var/www/${PROJECT_FOLDER}` // 生产环境下存储在 `/var/www/bakery`
-  : path.join(__dirname, '../../uploads', PROJECT_FOLDER); // 开发环境存储在项目目录下
+// 文件夹路径配置
+export const PATHS = {
+  // 项目根目录
+  ROOT: path.resolve(__dirname, '../..'),
+  
+  // 上传文件根目录
+  UPLOAD_ROOT: isProduction
+    ? `/var/www/${CONFIG.PROJECT_NAME}`
+    : path.join(__dirname, '../../uploads', CONFIG.PROJECT_NAME),
+  
+  // 各类型文件的存储目录
+  UPLOADS: {
+    PRODUCTS: 'products',
+    AVATARS: 'avatars',
+    TEMP: 'temp'
+  }
+} as const;
 
-// 商品图片的存储目录
-export const PRODUCT_UPLOAD_DIR = path.join(UPLOAD_ROOT, 'products');
+// 构建实际的存储路径
+export const STORAGE_PATHS = {
+  PRODUCT_IMAGES: path.join(PATHS.UPLOAD_ROOT, PATHS.UPLOADS.PRODUCTS),
+  AVATAR_IMAGES: path.join(PATHS.UPLOAD_ROOT, PATHS.UPLOADS.AVATARS),
+  TEMP_FILES: path.join(PATHS.UPLOAD_ROOT, PATHS.UPLOADS.TEMP)
+} as const;
 
-// 用户头像图片的存储目录
-export const AVATAR_UPLOAD_DIR = path.join(UPLOAD_ROOT, 'avatars');
+// URL 配置
+export const URLS = {
+  BASE: `${CONFIG.PROTOCOL}://${CONFIG.HOST}${isDevelopment ? `:${CONFIG.PORT}` : ''}`,
+  
+  UPLOADS: {
+    BASE: '/uploads',
+    PRODUCTS: '/uploads/products',
+    AVATARS: '/uploads/avatars'
+  }
+} as const;
 
-// 图片访问 URL 的基础路径
-export const IMAGE_BASE_URL = isProduction
-  ? `http://your-production-server-ip/${PROJECT_FOLDER}` // 替换为生产环境的实际服务器IP或域名
-  : `http://localhost:30100/uploads/${PROJECT_FOLDER}`;
+// 工具函数
+export const FileUtils = {
+  /**
+   * 获取文件的完整 URL
+   * @param subPath 文件相对路径
+   * @param type 文件类型（products/avatars）
+   */
+  getFileUrl(subPath: string, type: 'products' | 'avatars' = 'products'): string {
+    const baseUrl = `${URLS.BASE}${URLS.UPLOADS.BASE}/${CONFIG.PROJECT_NAME}/${type}`;
+    return `${baseUrl}/${subPath}`;
+  },
 
-// 生成完整的图片 URL
-export const getFileUrl = (subPath: string): string => `${IMAGE_BASE_URL}/${subPath}`;
+  /**
+   * 获取文件的完整存储路径
+   * @param filename 文件名
+   * @param type 文件类型（products/avatars）
+   */
+  getStoragePath(filename: string, type: 'products' | 'avatars' = 'products'): string {
+    const dir = type === 'products' ? STORAGE_PATHS.PRODUCT_IMAGES : STORAGE_PATHS.AVATAR_IMAGES;
+    return path.join(dir, filename);
+  }
+};
+
+// 导出常用路径常量
+export const PRODUCT_UPLOAD_DIR = STORAGE_PATHS.PRODUCT_IMAGES;
+export const AVATAR_UPLOAD_DIR = STORAGE_PATHS.AVATAR_IMAGES;
+export const BASE_UPLOAD_URL = URLS.BASE + URLS.UPLOADS.BASE;
+
+// 确保必要的目录存在
+Object.values(STORAGE_PATHS).forEach(dir => {
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true });
+  }
+});

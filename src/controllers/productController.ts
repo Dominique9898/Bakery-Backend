@@ -3,7 +3,6 @@ import { ProductService } from '../services/productService';
 import { ApiResponse, ApiResponsePaginated } from '../types/response';
 import { Product } from '../models/Product';
 import LOG from '../config/Logger';
-import fs from 'fs';
 import { ProductTagService } from '../services/productTagService';
 
 export class ProductController {
@@ -68,79 +67,84 @@ export class ProductController {
     LOG.info(`ProductController: createProduct Start`);
     LOG.info(`ProductController: createProduct params: ${JSON.stringify(req.body)}`);
     
-    const uploadedImagePath = req.file?.path;
-
     try {
-      // 基本验证
-      if (!req.body.productName?.trim()) {
-        throw new Error('商品名称不能为空');
-      }
-
-      const price = parseFloat(req.body.price);
-      const categoryId = parseInt(req.body.categoryId);
-
-      if (isNaN(price) || price <= 0) {
-        throw new Error('商品价格必须大于0');
-      }
-
-      if (isNaN(categoryId) || categoryId <= 0) {
-        throw new Error('无效的分类ID');
-      }
-
-      // 解析标签数据（如果存在）
-      let tags;
-      if (req.body.tags) {
-        try {
-          tags = JSON.parse(req.body.tags);
-          if (!Array.isArray(tags)) {
-            throw new Error('标签数据格式错误');
-          }
-          // 验证标签数据格式
-          for (const tag of tags) {
-            if (!tag.tagId || !Array.isArray(tag.optionIds)) {
-              throw new Error('标签数据格式错误');
-            }
-          }
-        } catch (e) {
-          throw new Error('标签数据解析失败');
-        }
-      }
-
-      const productData = {
-        name: req.body.productName.trim(),
-        description: req.body.description?.trim(),
-        price,
-        stock: parseInt(req.body.stock) || 0,
-        categoryId,
-        status: req.body.status as 'active' | 'inactive' || 'active',
-        imageFile: req.file,
-        tags  // 可选参数
-      };
-
+      // 数据验证和转换
+      const productData = await this.validateAndTransformProductData(req);
+      
+      // 创建产品
       const { product } = await ProductService.createProduct(productData);
       
       res.status(201).json({
         success: true,
         data: product,
         message: '产品创建成功'
-      } as ApiResponse<Product>);
-    } catch (error: any) {
+      });
+    } catch (error) {
       LOG.error(`ProductController: createProduct error: ${error}`);
-      
-      // 删除临时上传的文件
-      if (uploadedImagePath && fs.existsSync(uploadedImagePath)) {
-        fs.unlinkSync(uploadedImagePath);
-        LOG.info(`ProductController: Deleted uploaded image at ${uploadedImagePath}`);
-      }
-
       res.status(400).json({
         success: false,
-        message: '创建产品失败',
-        error: error.message
-      } as ApiResponse);
-    } finally {
-      LOG.info('ProductController: createProduct End');
+        message: error instanceof Error ? error.message : '创建产品失败'
+      });
     }
+  }
+
+  private static async validateAndTransformProductData(req: Request) {
+    const { 
+      productName,
+      description,
+      price,
+      stock,
+      categoryId,
+      status,
+      tags 
+    } = req.body;
+
+    // 基础验证
+    if (!productName?.trim()) {
+      throw new Error('商品名称不能为空');
+    }
+
+    const parsedPrice = parseFloat(price);
+    const parsedCategoryId = parseInt(categoryId);
+    const parsedStock = parseInt(stock) || 0;
+
+    if (isNaN(parsedPrice) || parsedPrice <= 0) {
+      throw new Error('商品价格必须大于0');
+    }
+
+    if (isNaN(parsedCategoryId) || parsedCategoryId <= 0) {
+      throw new Error('无效的分类ID');
+    }
+
+    // 解析标签数据
+    let parsedTags;
+    if (tags) {
+      try {
+        parsedTags = JSON.parse(tags);
+        if (!Array.isArray(parsedTags)) {
+          throw new Error('标签数据格式错误');
+        }
+        // 验证每个标签的数据格式
+        for (const tag of parsedTags) {
+          if (!tag.tagId || !Array.isArray(tag.optionIds)) {
+            throw new Error('标签数据格式错误');
+          }
+        }
+      } catch (e) {
+        throw new Error('标签数据解析失败');
+      }
+    }
+
+    return {
+      name: productName.trim(),
+      description: description?.trim(),
+      price: parsedPrice,
+      stock: parsedStock,
+      categoryId: parsedCategoryId,
+      status: status as 'active' | 'inactive' || 'active',
+      imageFile: req.file,
+      tags: parsedTags
+    };
   }
 
   // 更新产品
@@ -148,100 +152,68 @@ export class ProductController {
     LOG.info(`ProductController: updateProduct Start`);
     LOG.info(`ProductController: updateProduct params: ${JSON.stringify(req.params)}`);
     
-    // 保存上传的图片路径，以便失败时删除
-    const uploadedImagePath = req.file?.path;
-
     try {
-        const { productId } = req.params;
-        
-        // 1. 数据验证
-        const productName = req.body.productName?.trim();
-        if (productName !== undefined && !productName) {
-            throw new Error('商品名称不能为空');
-        }
+      const { productId } = req.params;
+      const updates = req.body;
+      
+      const updatedProduct = await ProductService.updateProduct(
+        productId,
+        updates,
+        req.file
+      );
 
-        const price = req.body.price ? parseFloat(req.body.price) : undefined;
-        const categoryId = req.body.categoryId ? parseInt(req.body.categoryId) : undefined;
-
-        // 2. 价格验证
-        if (price !== undefined && (isNaN(price) || price <= 0)) {
-            throw new Error('商品价格必须大于0');
-        }
-
-        // 3. 分类ID验证
-        if (categoryId !== undefined && (isNaN(categoryId) || categoryId <= 0)) {
-            throw new Error('无效的分类ID');
-        }
-
-        const updates = {
-            name: productName,
-            description: req.body.description?.trim(),
-            price,
-            stock: req.body.stock ? Number(req.body.stock) : undefined,
-            categoryId,
-            status: req.body.status as 'active' | 'inactive' | undefined
-        };
-
-        const updatedProduct = await ProductService.updateProduct(
-            productId,
-            updates,
-            req.file
-        );
-        
-        LOG.info(`ProductController: updateProduct updatedProduct: ${JSON.stringify(updatedProduct)}`);
-        res.status(200).json({
-            success: true,
-            data: updatedProduct,
-            message: '产品更新成功'
-        } as ApiResponse<Product>);
-    } catch (error: any) {
-        LOG.error(`ProductController: updateProduct error: ${error}`);
-        
-        // 删除原始上传的临时文件
-        if (uploadedImagePath && fs.existsSync(uploadedImagePath)) {
-            fs.unlinkSync(uploadedImagePath);
-            LOG.info(`ProductController: Deleted uploaded image at ${uploadedImagePath}`);
-        }
-
-        res.status(400).json({
-            success: false,
-            message: '更新产品失败',
-            error: error.message
-        } as ApiResponse);
-    } finally {
-        LOG.info('ProductController: updateProduct End');
+      res.json({
+        success: true,
+        data: updatedProduct
+      });
+    } catch (error) {
+      LOG.error(`ProductController: updateProduct Error: ${error}`);
+      res.status(500).json({
+        success: false,
+        message: error instanceof Error ? error.message : '更新产品失败'
+      });
     }
   }
 
   // 删除产品
   static async deleteProduct(req: Request, res: Response) {
-    LOG.info(`ProductController: deleteProduct Start`);
-    const productId: string = req.params.productId;
-    LOG.info(`ProductController: deleteProduct params: ${JSON.stringify(req.params)}`);
+    const { productId } = req.params;
     
-    if (!productId || typeof productId !== 'string') {
-        res.status(400).json({
-            success: false,
-            message: '无效的商品ID',
-        } as ApiResponse);
-    }
-
+    LOG.info(`ProductController: deleteProduct Start - productId: ${productId}`);
+    
     try {
-        await ProductService.deleteProduct(productId);
-        LOG.info(`ProductController: deleteProduct productId: ${productId}`);
-        res.status(200).json({
-            success: true,
-            message: '产品删除成功'
-        } as ApiResponse<Product>);
-    } catch (error: any) {
-        LOG.error(`ProductController: deleteProduct error: ${error}`);
+      // 验证产品ID
+      if (!productId?.trim()) {
         res.status(400).json({
-            success: false,
-            message: '删除产品失败',
-            error: error.message
-        } as ApiResponse);
-    } finally {
-        LOG.info('ProductController: deleteProduct End');
+          success: false,
+          message: '无效的商品ID'
+        });
+      }
+
+      // 删除产品
+      await ProductService.deleteProduct(productId);
+      
+      LOG.info(`ProductController: deleteProduct Success - productId: ${productId}`);
+      res.status(200).json({
+        success: true,
+        message: '产品删除成功'
+      });
+      
+    } catch (error) {
+      LOG.error(`ProductController: deleteProduct Error - ${error}`);
+      
+      // 区分不同类型的错误
+      if (error instanceof Error && error.message.includes('商品不存在')) {
+        res.status(404).json({
+          success: false,
+          message: '商品不存在'
+        });
+      }
+      
+      res.status(500).json({
+        success: false,
+        message: error instanceof Error ? error.message : '删除产品失败'
+      });
     }
   }
 

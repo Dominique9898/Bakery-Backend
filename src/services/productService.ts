@@ -90,7 +90,7 @@ export class ProductService {
     } catch (error) {
       await queryRunner.rollbackTransaction();
       if (imageResult?.path) {
-        await ImageService.deleteImage(imageResult.path);
+        await ImageService.deleteProductImage(imageResult.path);
       }
       throw error;
     } finally {
@@ -133,7 +133,7 @@ export class ProductService {
         updates.imageUrl = imageResult.url;
         
         if (product.imageUrl) {
-          await ImageService.deleteImageByUrl(product.imageUrl);
+          await ImageService.deleteProductImage(product.imageUrl);
         }
       }
 
@@ -154,7 +154,7 @@ export class ProductService {
     const product = await this.getProductById(productId);
     
     if (product.imageUrl) {
-      await ImageService.deleteImageByUrl(product.imageUrl);
+      await ImageService.deleteProductImage(product.imageUrl);
     }
 
     await ProductRepo.deleteProduct(productId);

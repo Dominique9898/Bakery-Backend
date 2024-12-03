@@ -1,7 +1,6 @@
 import { Router } from 'express';
-import { upload } from '../middlewares/upload';
 import { ProductController } from '../controllers/productController';
-
+import { productUpload } from '../middlewares/upload';
 const router = Router();
 
 /**
@@ -118,7 +117,7 @@ router.get('/getById/:productId', ProductController.getProductById);
  *       400:
  *         description: 请求参数错误
  */
-router.post('/create', upload.single('image'), ProductController.createProduct);
+router.post('/create', productUpload.single('image'), ProductController.createProduct);
 
 /**
  * @swagger
@@ -251,7 +250,7 @@ router.get('/:productId/tag-options/:tagId', ProductController.getProductTagOpti
  *       400:
  *         description: 请求参数错误
  */
-router.put('/update/:productId', upload.single('image'), ProductController.updateProduct);
+router.put('/update/:productId', productUpload.single('image'), ProductController.updateProduct);
 
 /**
  * @swagger
