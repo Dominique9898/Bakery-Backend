@@ -22,6 +22,10 @@ export class ProductTagService {
     return await OptionRepo.findByOptionId(optionId);
   }
 
+  static async getAllTags(): Promise<ProductTag[]> {
+    return await TagRepo.find() as unknown as ProductTag[];
+  }
+
   static async getProductTags(productId: string): Promise<ProductTag[]> {
     return await TagRepo.findByProductId(productId);
   }

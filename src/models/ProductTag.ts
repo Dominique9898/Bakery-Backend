@@ -12,10 +12,13 @@ import { ProductTagOption } from './ProductTagOption';
 
 @Entity('product_tags')
 export class ProductTag {
-  @PrimaryGeneratedColumn('increment')
+  @PrimaryGeneratedColumn('identity', {
+    name: 'tag_id',
+  })
   tagId!: number;
 
   @Column({
+    name: 'name',
     type: 'varchar',
     length: 50,
     nullable: false
@@ -23,21 +26,27 @@ export class ProductTag {
   name!: string;  // 例如：'状态', '冰量', '甜度', '小料'
 
   @Column({
+    name: 'required',
     type: 'boolean',
     default: true
   })
   required!: boolean;  // 是否必选
 
   @Column({
+    name: 'multi_select',
     type: 'boolean',
     default: false
   })
   multiSelect!: boolean;  // 是否可多选
 
-  @CreateDateColumn()
+  @CreateDateColumn({
+    name: 'created_at'
+  })
   createdAt!: Date;
 
-  @UpdateDateColumn()
+  @UpdateDateColumn({
+    name: 'updated_at'
+  })
   updatedAt!: Date;
 
   @OneToMany(() => ProductTagOption, option => option.tag)

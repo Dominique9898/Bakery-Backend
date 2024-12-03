@@ -245,6 +245,24 @@ export class ProductController {
     }
   }
 
+  // 获取所有标签
+  static async getAllTags(req: Request, res: Response): Promise<void> {
+    try {
+      const tags = await ProductTagService.getAllTags();
+      res.json({
+        success: true,
+        data: tags
+      });
+    } catch (error: any) {
+      res.status(500).json({
+        success: false,
+        message: '获取标签失败',
+        error: error.message
+      });
+    }
+  }
+
+  // 获取产品标签
   static async getProductTags(req: Request, res: Response): Promise<void> {
     try {
       const { productId } = req.params;
