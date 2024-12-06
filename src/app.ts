@@ -3,7 +3,7 @@ import cors from 'cors';
 import { URLS, PATHS } from './config/paths';
 import { json, urlencoded } from 'body-parser';
 import bodyParser from "body-parser";
-import { setupSwagger } from './swagger/swagger';
+import { setupSwagger } from './config/swagger';
 import routes from './routes';
 import helmet from 'helmet';
 

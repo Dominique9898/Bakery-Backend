@@ -22,7 +22,8 @@ export class Category {
     name: 'category_name',
     type: 'varchar',
     length: 50,
-    nullable: false
+    nullable: false,
+    unique: true
   })
   categoryName!: string;
 

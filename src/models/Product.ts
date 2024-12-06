@@ -8,7 +8,8 @@ import {
   OneToMany,
   JoinColumn,
   ManyToMany,
-  JoinTable
+  JoinTable,
+  Index
 } from 'typeorm';
 import { Category } from './Category';
 import { OrderItem } from './OrderItem';
@@ -23,6 +24,7 @@ export class Product {
   })
   productId!: string;
 
+  @Index()
   @Column({
     type: 'varchar',
     length: 100,

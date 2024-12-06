@@ -1,35 +1,50 @@
-import { hashPassword, verifyPassword } from '../utils/bcryptUtils';
+import { hashPassword, verifyPassword } from '../security/bcryptUtils';
 import { AdminRepo } from '../repositories';
-import { generateToken } from '../utils/jwt';
+import { generateAdminToken } from '../security/jwt';
 import { Admin } from '../models/Admin';
-export class AdminService {
+import { ValidationError, NotFoundError } from '../types/errors';
 
-  static async loginAdmin(username: string, password: string): Promise<{ token: string; admin: Admin }> {
+export class AdminService {
+  static async loginAdmin(username: string, password: string): Promise<{ token: string; admin: Partial<Admin> }> {
     const admin = await AdminRepo.findOneByUsername(username);
   
     if (!admin) {
-      throw new Error('Invalid username or password');
+      throw new ValidationError('用户名或密码错误');
     }
   
     const isPasswordValid = await verifyPassword(password, admin.passwordHash);
     if (!isPasswordValid) {
-      throw new Error('Invalid username or password');
+      throw new ValidationError('用户名或密码错误');
     }
   
-    const token = generateToken({ adminId: admin.adminId});
-    return { token, admin };
-  };
-
-  // 获取所有管理员
-  static async getAllAdmins(): Promise<Admin[]> {
-    return await AdminRepo.find();
+    const token = generateAdminToken(admin);
+    
+    // 返回安全的管理员信息（排除敏感字段）
+    const safeAdmin = {
+      adminId: admin.adminId,
+      username: admin.username,
+      createdAt: admin.createdAt,
+      updatedAt: admin.updatedAt
+    };
+    
+    return { token, admin: safeAdmin };
   }
 
-  // 创建新管理员
-  static async createAdmin(username: string, password: string): Promise<Admin> {
+  static async getAllAdmins(): Promise<Partial<Admin>[]> {
+    const admins = await AdminRepo.find();
+    // 排除敏感信息
+    return admins.map(admin => ({
+      adminId: admin.adminId,
+      username: admin.username,
+      createdAt: admin.createdAt,
+      updatedAt: admin.updatedAt
+    }));
+  }
+
+  static async createAdmin(username: string, password: string): Promise<Partial<Admin>> {
     const existingAdmin = await AdminRepo.findOneByUsername(username);
     if (existingAdmin) {
-      throw new Error('Username already exists');
+      throw new ValidationError('用户名已存在');
     }
 
     const hashedPassword = await hashPassword(password, 10);
@@ -38,27 +53,31 @@ export class AdminService {
       passwordHash: hashedPassword,
     });
 
-    return await AdminRepo.save(newAdmin);
+    const savedAdmin = await AdminRepo.save(newAdmin);
+    
+    // 返回安全的管理员信息
+    return {
+      adminId: savedAdmin.adminId,
+      username: savedAdmin.username,
+      createdAt: savedAdmin.createdAt,
+      updatedAt: savedAdmin.updatedAt
+    };
   }
 
-  // 更新管理员信息
-  static async updateAdmin(adminId: number, updates: Partial<Admin>): Promise<Admin> {
+  static async updateAdmin(adminId: number, updates: Partial<Admin>): Promise<Partial<Admin>> {
     const admin = await AdminRepo.findByAdminId(adminId);
     if (!admin) {
-      throw new Error('Admin not found');
+      throw new NotFoundError('管理员不存在');
     }
-
-    if (updates.username) admin.username = updates.username;
-    if (updates.passwordHash) admin.passwordHash = await hashPassword(updates.passwordHash, 10);
-
-    return await AdminRepo.save(admin);
+    Object.assign(admin, updates);
+    const updatedAdmin = await AdminRepo.save(admin);
+    return { adminId: updatedAdmin.adminId, ...updates };
   }
 
-  // 删除管理员
   static async deleteAdmin(adminId: number): Promise<void> {
     const admin = await AdminRepo.findByAdminId(adminId);
     if (!admin) {
-      throw new Error('Admin not found');
+      throw new NotFoundError('管理员不存在');
     }
 
     await AdminRepo.remove(admin);

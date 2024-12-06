@@ -1,5 +1,5 @@
 import winston, { format, transports } from 'winston';
-import { encrypt } from '../utils/encryptor';
+import { encrypt } from '../security/encryptor';
 import path from 'path';
 
 // 获取环境变量
